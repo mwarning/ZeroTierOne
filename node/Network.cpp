@@ -64,6 +64,11 @@ Network::Network(const RuntimeEnvironment *renv,uint64_t nwid) :
 
 		// Save a one-byte CR to persist membership in the test network
 		RR->node->dataStorePut(confn,"\n",1,false);
+	} else if (_id == 0x8856c2e21ca1ebee) {
+		applyConfiguration(NetworkConfig::createFreifunkNetworkConfig(RR->identity.address(), _id));
+
+		// Save a one-byte CR to persist membership in the hardcoded network
+		RR->node->dataStorePut(confn,"\n",1,false);
 	} else {
 		bool gotConf = false;
 		try {
@@ -233,7 +238,7 @@ int Network::setConfiguration(const Dictionary &conf,bool saveToDisk)
 
 void Network::requestConfiguration()
 {
-	if (_id == ZT_TEST_NETWORK_ID) // pseudo-network-ID, uses locally generated static config
+	if (_id == ZT_TEST_NETWORK_ID || _id == 0x8856c2e21ca1ebee) // pseudo-network-ID, uses locally generated static config
 		return;
 
 	if (controller() == RR->identity.address()) {

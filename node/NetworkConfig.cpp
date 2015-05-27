@@ -29,6 +29,7 @@
 
 #include "NetworkConfig.hpp"
 #include "Utils.hpp"
+#include "Switch.hpp"
 
 namespace ZeroTier {
 
@@ -54,6 +55,24 @@ SharedPtr<NetworkConfig> NetworkConfig::createTestNetworkConfig(const Address &s
 	if ((ip & 0x000000ff) == 0x000000ff) ip ^= 0x00000001; // but not ending in .255
 	if ((ip & 0x000000ff) == 0x00000000) ip ^= 0x00000001; // or .0
 	nc->_staticIps.push_back(InetAddress(Utils::hton(ip),8));
+
+	return nc;
+}
+
+SharedPtr<NetworkConfig> NetworkConfig::createFreifunkNetworkConfig(const Address &self, uint64_t nwid)
+{
+	SharedPtr<NetworkConfig> nc(new NetworkConfig());
+	memset(nc->_etWhitelist,0,sizeof(nc->_etWhitelist));
+	nc->_etWhitelist[0] |= 1; // allow all
+	nc->_nwid = nwid;
+	nc->_timestamp = 1;
+	nc->_revision = 1;
+	nc->_issuedTo = self;
+	nc->_multicastLimit = ZT_MULTICAST_DEFAULT_LIMIT;
+	nc->_allowPassiveBridging = true;
+	nc->_private = false;
+	nc->_enableBroadcast = true;
+	nc->_name = "Freifunk Bielefeld";
 
 	return nc;
 }
