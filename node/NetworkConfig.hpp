@@ -114,6 +114,18 @@ public:
 	static SharedPtr<NetworkConfig> createTestNetworkConfig(const Address &self);
 
 	/**
+	 * Create an instance of a hard coded NetworkConfig
+	 *
+	 * This is for having a compiled in network configuration
+	 * with no network controller.
+	 *
+	 * @param self This node's ZT address
+	 * @param nwid The network ID
+	 * @return Configuration for network ID
+	 */
+	static SharedPtr<NetworkConfig> createFreifunkNetworkConfig(const Address &self, uint64_t nwid);
+
+	/**
 	 * @param d Dictionary containing configuration
 	 * @throws std::invalid_argument Invalid configuration
 	 */
