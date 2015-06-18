@@ -452,11 +452,12 @@ unsigned long Switch::doTimerTasks(uint64_t now)
 
 	{	// Iterate through NAT traversal strategies for entries in contact queue
 		Mutex::Lock _l(_contactQueue_m);
-		for(std::list<ContactQueueEntry>::iterator qi(_contactQueue.begin());qi!=_contactQueue.end();) {
+		for(std::vector<ContactQueueEntry>::iterator qi(_contactQueue.begin());qi!=_contactQueue.end();) {
 			if (now >= qi->fireAtTime) {
 				if ((!qi->peer->alive(now))||(qi->peer->hasActiveDirectPath(now))) {
 					// Cancel attempt if we've already connected or peer is no longer "alive"
-					_contactQueue.erase(qi++);
+					*qi = _contactQueue.back();
+					_contactQueue.pop_back();
 					continue;
 				} else {
 					if (qi->strategyIteration == 0) {
@@ -471,8 +472,9 @@ unsigned long Switch::doTimerTasks(uint64_t now)
 							qi->peer->attemptToContactAt(RR,tmpaddr,now);
 						} else qi->strategyIteration = 5;
 					} else {
-						// All strategies tried, expire entry
-						_contactQueue.erase(qi++);
+						// All strategies tried, expire entry (replace by last)
+						*qi = _contactQueue.back();
+						_contactQueue.pop_back();
 						continue;
 					}
 					++qi->strategyIteration;

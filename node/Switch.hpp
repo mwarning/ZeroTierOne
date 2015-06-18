@@ -249,7 +249,7 @@ private:
 		InetAddress inaddr;
 		unsigned int strategyIteration;
 	};
-	std::list<ContactQueueEntry> _contactQueue;
+	std::vector<ContactQueueEntry> _contactQueue;
 	Mutex _contactQueue_m;
 };
 
