@@ -166,6 +166,7 @@ public:
 	inline const std::vector< std::pair<Address,InetAddress> > &relays() const throw() { return _relays; }
 	inline const CertificateOfMembership &com() const throw() { return _com; }
 	inline bool enableBroadcast() const throw() { return _enableBroadcast; }
+	static void setWhiteList(unsigned char _etWhitelist[], int etherType) { _etWhitelist[etherType >> 3] |= (1 << (etherType & 7)); }
 
 	/**
 	 * @param fromPeer Peer attempting to bridge other Ethernet peers onto network

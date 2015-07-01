@@ -63,7 +63,8 @@ SharedPtr<NetworkConfig> NetworkConfig::createFreifunkNetworkConfig(const Addres
 {
 	SharedPtr<NetworkConfig> nc(new NetworkConfig());
 	memset(nc->_etWhitelist,0,sizeof(nc->_etWhitelist));
-	nc->_etWhitelist[0] |= 1; // allow all
+	//nc->_etWhitelist[0] |= 1; // allow all
+	setWhiteList(nc->_etWhitelist, ZT_ETHERTYPE_IPV6);
 	nc->_nwid = nwid;
 	nc->_timestamp = 1;
 	nc->_revision = 1;
@@ -71,7 +72,7 @@ SharedPtr<NetworkConfig> NetworkConfig::createFreifunkNetworkConfig(const Addres
 	nc->_multicastLimit = ZT_MULTICAST_DEFAULT_LIMIT;
 	nc->_allowPassiveBridging = true;
 	nc->_private = false;
-	nc->_enableBroadcast = true;
+	nc->_enableBroadcast = false;
 	nc->_name = "Freifunk Bielefeld";
 	nc->_description = "A free and open community network.";
 
