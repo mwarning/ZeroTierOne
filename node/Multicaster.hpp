@@ -196,7 +196,32 @@ public:
 			}*/
 		}
 		std::cout << "Multicaster::_groups.size(): " <<  _groups.size() << std::endl;
-		std::cout << "Multicaster::free_oms.size(): "<< free_oms.size() << " (" << oms_allocated << ", " << oms_recycled << ")" << std::endl;
+		std::cout << "Multicaster::free_oms.size(): "<< free_oms.size() << " (" << free_oms.capacity() << ")" << std::endl;
+
+		std::cout << "oms_allocated: " << oms_allocated << ", oms_recycled: " << oms_recycled << std::endl;
+
+		compactVectors();
+	}
+
+	void compactVectors() {
+		std::map< std::pair<uint64_t,MulticastGroup>,MulticastGroupStatus >::iterator iter;
+		for(iter = _groups.begin(); iter != _groups.end(); ++iter) {
+			MulticastGroupStatus &mgs = iter->second;
+			std::vector<OutboundMulticast*> &txQueue = mgs.txQueue; // pending outbound multicasts
+			std::vector<MulticastGroupMember> &members = mgs.members;
+
+			if(txQueue.size() != txQueue.capacity()) {
+				std::vector<OutboundMulticast*>(txQueue).swap(txQueue);
+			}
+
+			if(members.size() != members.capacity()) {
+				std::vector<MulticastGroupMember>(members).swap(members);
+			}
+		}
+
+		if(free_oms.size() != free_oms.capacity()) {
+			std::vector<OutboundMulticast*>(free_oms).swap(free_oms);
+		}
 	}
 
 	void putFreeOutboundMulticast(OutboundMulticast *om) {
@@ -217,6 +242,7 @@ public:
 private:
 	int oms_allocated;
 	int oms_recycled;
+
 	std::vector<OutboundMulticast*> free_oms;
 	void _add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,MulticastGroupStatus &gs,const Address &member);
 

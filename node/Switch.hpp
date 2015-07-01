@@ -183,9 +183,20 @@ public:
 		std::cout << "  _rxQueue.size(): " << _rxQueue.size() << " (" << _rxQueue.capacity() << ")" << std::endl;
 		std::cout << "  _txQueue.size(): " << _txQueue.size() << std::endl;
 		std::cout << "  _contactQueue.size(): " << _contactQueue.size() << " (" << _contactQueue.capacity() << ")" << std::endl;
+		compactVectors();
 	}
 
 private:
+	void compactVectors() {
+		if(_contactQueue.size() != _contactQueue.capacity()) {
+			std::vector<ContactQueueEntry>(_contactQueue).swap(_contactQueue);
+		}
+
+		if(_rxQueue.size() != _rxQueue.capacity()) {
+			std::vector<IncomingPacket*>(_rxQueue).swap(_rxQueue);
+		}
+	}
+
 	void _handleRemotePacketFragment(const InetAddress &fromAddr,const void *data,unsigned int len);
 	void _handleRemotePacketHead(const InetAddress &fromAddr,const void *data,unsigned int len);
 	Address _sendWhoisRequest(const Address &addr,const Address *peersAlreadyConsulted,unsigned int numPeersAlreadyConsulted);
