@@ -177,20 +177,46 @@ public:
 	 */
 	void clean(uint64_t now);
 
+	void printAll()  {
+		std::map< std::pair<uint64_t,MulticastGroup>,MulticastGroupStatus >::const_iterator iter;
+		for(iter = _groups.begin(); iter != _groups.end(); ++iter) {
+			uint64_t nwid = iter->first.first;
+			const MulticastGroup &mg = iter->first.second;
+			const MulticastGroupStatus &mgs = iter->second;
+			const std::vector<OutboundMulticast*> &txQueue = mgs.txQueue; // pending outbound multicasts
+			const std::vector<MulticastGroupMember> &members = mgs.members;
+			std::cout << "  nwid: "<< nwid << ", MulticastGroup: " << mg.toString() << std::endl;
+			std::cout << "  txQueue.size(): "<< txQueue.size() << " (" << txQueue.capacity() << ")" << std::endl;
+			std::cout << "  members.size(): " << members.size() << " (" << members.capacity() << "), mgs.lastExplicitGather: "<< mgs.lastExplicitGather << std::endl;
+
+			/*std::cout << "    txQueue:" << std::endl;
+			std::vector<OutboundMulticast*>::const_iterator iom;
+			for(iom = txQueue.begin(); iom != txQueue.end(); ++iom) {
+				std::cout << "      _alreadySentTo: " << (*iom)->_alreadySentTo.size() << std::endl;
+			}*/
+		}
+		std::cout << "Multicaster::_groups.size(): " <<  _groups.size() << std::endl;
+		std::cout << "Multicaster::free_oms.size(): "<< free_oms.size() << " (" << oms_allocated << ", " << oms_recycled << ")" << std::endl;
+	}
+
 	void putFreeOutboundMulticast(OutboundMulticast *om) {
 		free_oms.push_back(om);
 	}
 
 	OutboundMulticast *getFreeOutboundMulticast() {
 		if(free_oms.empty()) {
+			oms_allocated++;
 			return new OutboundMulticast();
 		}
+		oms_recycled++;
 		OutboundMulticast *tmp = free_oms.back();
 		free_oms.pop_back();
 		return tmp;
 	}
 
 private:
+	int oms_allocated;
+	int oms_recycled;
 	std::vector<OutboundMulticast*> free_oms;
 	void _add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,MulticastGroupStatus &gs,const Address &member);
 

@@ -41,7 +41,7 @@
 namespace ZeroTier {
 
 Multicaster::Multicaster(const RuntimeEnvironment *renv) :
-	RR(renv)
+	oms_allocated(0), oms_recycled(0), RR(renv)
 {
 }
 

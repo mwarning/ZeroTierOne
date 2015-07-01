@@ -351,6 +351,8 @@ void Node::status(ZT1_NodeStatus *status) const
 	status->publicIdentity = RR->publicIdentityStr.c_str();
 	status->secretIdentity = RR->secretIdentityStr.c_str();
 	status->online = _online ? 1 : 0;
+	RR->mc->printAll();
+	RR->sw->printAll();
 }
 
 ZT1_PeerList *Node::peers() const
