@@ -70,7 +70,7 @@ private:
 		MulticastGroupStatus() : lastExplicitGather(0) {}
 
 		uint64_t lastExplicitGather;
-		std::list<OutboundMulticast> txQueue; // pending outbound multicasts
+		std::vector<OutboundMulticast*> txQueue; // pending outbound multicasts
 		std::vector<MulticastGroupMember> members; // members of this group
 	};
 
@@ -177,7 +177,21 @@ public:
 	 */
 	void clean(uint64_t now);
 
+	void putFreeOutboundMulticast(OutboundMulticast *om) {
+		free_oms.push_back(om);
+	}
+
+	OutboundMulticast *getFreeOutboundMulticast() {
+		if(free_oms.empty()) {
+			return new OutboundMulticast();
+		}
+		OutboundMulticast *tmp = free_oms.back();
+		free_oms.pop_back();
+		return tmp;
+	}
+
 private:
+	std::vector<OutboundMulticast*> free_oms;
 	void _add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,MulticastGroupStatus &gs,const Address &member);
 
 	const RuntimeEnvironment *RR;

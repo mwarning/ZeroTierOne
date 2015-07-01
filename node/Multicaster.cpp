@@ -247,10 +247,11 @@ void Multicaster::send(
 			gatherLimit = 0;
 		}
 
-		gs.txQueue.push_back(OutboundMulticast());
-		OutboundMulticast &out = gs.txQueue.back();
+		OutboundMulticast* out = getFreeOutboundMulticast();
+		gs.txQueue.push_back(out);
+		//OutboundMulticast &out = gs.txQueue.back();
 
-		out.init(
+		out->init(
 			RR,
 			now,
 			nwid,
@@ -267,7 +268,7 @@ void Multicaster::send(
 
 		for(std::vector<Address>::const_iterator ast(alwaysSendTo.begin());ast!=alwaysSendTo.end();++ast) {
 			if (*ast != RR->identity.address()) {
-				out.sendAndLog(RR,*ast);
+				out->sendAndLog(RR,*ast);
 				if (++count >= limit)
 					break;
 			}
@@ -277,7 +278,7 @@ void Multicaster::send(
 		while ((count < limit)&&(idx < gs.members.size())) {
 			Address ma(gs.members[indexes[idx++]].address);
 			if (std::find(alwaysSendTo.begin(),alwaysSendTo.end(),ma) == alwaysSendTo.end()) {
-				out.sendAndLog(RR,ma);
+				out->sendAndLog(RR,ma);
 				++count;
 			}
 		}
@@ -292,10 +293,14 @@ void Multicaster::clean(uint64_t now)
 {
 	Mutex::Lock _l(_groups_m);
 	for(std::map< std::pair<uint64_t,MulticastGroup>,MulticastGroupStatus >::iterator mm(_groups.begin());mm!=_groups.end();) {
-		for(std::list<OutboundMulticast>::iterator tx(mm->second.txQueue.begin());tx!=mm->second.txQueue.end();) {
-			if ((tx->expired(now))||(tx->atLimit()))
-				mm->second.txQueue.erase(tx++);
-			else ++tx;
+		for(std::vector<OutboundMulticast*>::iterator tx(mm->second.txQueue.begin());tx!=mm->second.txQueue.end();) {
+			if (((*tx)->expired(now))||((*tx)->atLimit())) {
+				//mm->second.txQueue.erase(tx++);
+				putFreeOutboundMulticast(*tx);
+				// erase element (replace by last)
+				*tx = mm->second.txQueue.back();
+				mm->second.txQueue.pop_back();
+			} else ++tx;
 		}
 
 		unsigned long count = 0;
@@ -343,14 +348,20 @@ void Multicaster::_add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,Multi
 
 	//TRACE("..MC %s joined multicast group %.16llx/%s via %s",member.toString().c_str(),nwid,mg.toString().c_str(),((learnedFrom) ? learnedFrom.toString().c_str() : "(direct)"));
 
-	for(std::list<OutboundMulticast>::iterator tx(gs.txQueue.begin());tx!=gs.txQueue.end();) {
-		if (tx->atLimit())
-			gs.txQueue.erase(tx++);
-		else {
-			tx->sendIfNew(RR,member);
-			if (tx->atLimit())
-				gs.txQueue.erase(tx++);
-			else ++tx;
+	for(std::vector<OutboundMulticast*>::iterator tx(gs.txQueue.begin());tx!=gs.txQueue.end();) {
+		if ((*tx)->atLimit()) {
+			//gs.txQueue.erase(tx++);
+			putFreeOutboundMulticast(*tx);
+			*tx = gs.txQueue.back();
+			gs.txQueue.pop_back();
+		} else {
+			(*tx)->sendIfNew(RR,member);
+			if ((*tx)->atLimit()) {
+				putFreeOutboundMulticast(*tx);
+				*tx = gs.txQueue.back();
+				gs.txQueue.pop_back();
+				//gs.txQueue.erase(tx++);
+			} else ++tx;
 		}
 	}
 }
