@@ -216,19 +216,37 @@ private:
 	struct TXQueueEntry
 	{
 		TXQueueEntry() {}
-		TXQueueEntry(uint64_t ct,const Packet &p,bool enc,uint64_t nw) :
-			creationTime(ct),
-			nwid(nw),
-			packet(p),
-			encrypt(enc) {}
 
+		void init(const Address &a,uint64_t ct,const Packet &p,bool enc,uint64_t nw) {
+			addr = a;
+			creationTime = ct;
+			nwid = nw;
+			packet = p;
+			encrypt = enc;
+		}
+
+		Address addr;
 		uint64_t creationTime;
 		uint64_t nwid;
 		Packet packet; // unencrypted/unMAC'd packet -- this is done at send time
 		bool encrypt;
 	};
-	std::multimap< Address,TXQueueEntry > _txQueue;
+	std::vector<TXQueueEntry*> _txQueue;
 	Mutex _txQueue_m;
+
+	void putFreeTXQueueEntry(TXQueueEntry *txe) {
+		free_txe.push_back(txe);
+	}
+
+	TXQueueEntry *getFreeTXQueueEntry() {
+		if(free_txe.empty()) {
+			return new TXQueueEntry();
+		}
+		TXQueueEntry *txe = free_txe.back();
+		free_txe.pop_back();
+		return txe;
+	}
+	std::vector<TXQueueEntry*> free_txe;
 
 	// Tracks sending of VERB_RENDEZVOUS to relaying peers
 	std::map< Array< Address,2 >,uint64_t > _lastUniteAttempt; // key is always sorted in ascending order, for set-like behavior
