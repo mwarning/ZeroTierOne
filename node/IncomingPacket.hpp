@@ -64,8 +64,6 @@ class Network;
  */
 class IncomingPacket : public Packet
 {
-	friend class SharedPtr<IncomingPacket>;
-
 public:
 	/**
 	 * Create a new packet-in-decode
@@ -79,8 +77,11 @@ public:
 	IncomingPacket(const void *data,unsigned int len,const InetAddress &remoteAddress,uint64_t now) :
  		Packet(data,len),
  		_receiveTime(now),
- 		_remoteAddress(remoteAddress),
- 		__refCount()
+		_remoteAddress(remoteAddress)
+	{
+	}
+
+	IncomingPacket()
 	{
 	}
 
@@ -128,7 +129,6 @@ private:
 
 	uint64_t _receiveTime;
 	InetAddress _remoteAddress;
-	AtomicCounter __refCount;
 };
 
 } // namespace ZeroTier

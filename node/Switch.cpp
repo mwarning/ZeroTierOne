@@ -428,8 +428,9 @@ void Switch::doAnythingWaitingForPeer(const SharedPtr<Peer> &peer)
 
 	{	// finish processing any packets waiting on peer's public key / identity
 		Mutex::Lock _l(_rxQueue_m);
-		for(std::vector< SharedPtr<IncomingPacket> >::iterator rxi(_rxQueue.begin());rxi!=_rxQueue.end();) {
+		for(std::vector< IncomingPacket* >::iterator rxi(_rxQueue.begin());rxi!=_rxQueue.end();) {
 			if ((*rxi)->tryDecode(RR)) {
+				putFreeIncomingPacket(*rxi);
 				// erase element (replace by last)
 				*rxi = _rxQueue.back();
 				_rxQueue.pop_back();
@@ -523,7 +524,7 @@ unsigned long Switch::doTimerTasks(uint64_t now)
 				*txi = _txQueue.back();
 				_txQueue.pop_back();
 			} else if ((now - (*txi)->creationTime) > ZT_TRANSMIT_QUEUE_TIMEOUT) {
-				TRACE("TX %s -> %s timed out",txi->packet.source().toString().c_str(),i->packet.destination().toString().c_str());
+				TRACE("TX %s -> %s timed out",(*txi)->packet.source().toString().c_str(),(*txi)->packet.destination().toString().c_str());
 				putFreeTXQueueEntry(*txi);
 				*txi = _txQueue.back();
 				_txQueue.pop_back();
@@ -533,9 +534,10 @@ unsigned long Switch::doTimerTasks(uint64_t now)
 
 	{	// Time out RX queue packets that never got WHOIS lookups or other info.
 		Mutex::Lock _l(_rxQueue_m);
-		for(std::vector< SharedPtr<IncomingPacket> >::iterator i(_rxQueue.begin());i!=_rxQueue.end();) {
+		for(std::vector< IncomingPacket* >::iterator i(_rxQueue.begin());i!=_rxQueue.end();) {
 			if ((now - (*i)->receiveTime()) > ZT_RECEIVE_QUEUE_TIMEOUT) {
 				TRACE("RX %s -> %s timed out",(*i)->source().toString().c_str(),(*i)->destination().toString().c_str());
+				putFreeIncomingPacket(*i);
 				// erase element (replace by last)
 				*i = _rxQueue.back();
 				_rxQueue.pop_back();
@@ -548,6 +550,7 @@ unsigned long Switch::doTimerTasks(uint64_t now)
 		for(std::map< uint64_t,DefragQueueEntry >::iterator i(_defragQueue.begin());i!=_defragQueue.end();) {
 			if ((now - i->second.creationTime) > ZT_FRAGMENTED_PACKET_RECEIVE_TIMEOUT) {
 				TRACE("incomplete fragmented packet %.16llx timed out, fragments discarded",i->first);
+				putFreeIncomingPacket(i->second.frag0);
 				_defragQueue.erase(i++);
 			} else ++i;
 		}
@@ -613,7 +616,7 @@ void Switch::_handleRemotePacketFragment(const InetAddress &fromAddr,const void 
 					// We have all fragments -- assemble and process full Packet
 					//TRACE("packet %.16llx is complete, assembling and processing...",pid);
 
-					SharedPtr<IncomingPacket> packet(dqe->second.frag0);
+					IncomingPacket *packet = dqe->second.frag0;
 					for(unsigned int f=1;f<tf;++f)
 						packet->append(dqe->second.frags[f - 1].payload(),dqe->second.frags[f - 1].payloadLength());
 					_defragQueue.erase(dqe);
@@ -621,6 +624,8 @@ void Switch::_handleRemotePacketFragment(const InetAddress &fromAddr,const void 
 					if (!packet->tryDecode(RR)) {
 						Mutex::Lock _l(_rxQueue_m);
 						_rxQueue.push_back(packet);
+					} else {
+						putFreeIncomingPacket(packet);
 					}
 				}
 			} // else this is a duplicate fragment, ignore
@@ -630,7 +635,7 @@ void Switch::_handleRemotePacketFragment(const InetAddress &fromAddr,const void 
 
 void Switch::_handleRemotePacketHead(const InetAddress &fromAddr,const void *data,unsigned int len)
 {
-	SharedPtr<IncomingPacket> packet(new IncomingPacket(data,len,fromAddr,RR->node->now()));
+	IncomingPacket *packet = getFreeIncomingPacket(data,len,fromAddr,RR->node->now());
 
 	Address source(packet->source());
 	Address destination(packet->destination());
@@ -669,6 +674,7 @@ void Switch::_handleRemotePacketHead(const InetAddress &fromAddr,const void *dat
 			dq.totalFragments = 0; // 0 == unknown, waiting for Packet::Fragment
 			dq.haveFragments = 1; // head is first bit (left to right)
 			//TRACE("fragment (0/?) of %.16llx from %s",pid,fromAddr.toString().c_str());
+			return;
 		} else if (!(dqe->second.haveFragments & 1)) {
 			// If we have other fragments but no head, see if we are complete with the head
 			if ((dqe->second.totalFragments)&&(Utils::countBits(dqe->second.haveFragments |= 1) == dqe->second.totalFragments)) {
@@ -678,15 +684,19 @@ void Switch::_handleRemotePacketHead(const InetAddress &fromAddr,const void *dat
 				// packet already contains head, so append fragments
 				for(unsigned int f=1;f<dqe->second.totalFragments;++f)
 					packet->append(dqe->second.frags[f - 1].payload(),dqe->second.frags[f - 1].payloadLength());
+
+				putFreeIncomingPacket(dqe->second.frag0);
 				_defragQueue.erase(dqe);
 
 				if (!packet->tryDecode(RR)) {
 					Mutex::Lock _l(_rxQueue_m);
 					_rxQueue.push_back(packet);
+					return;
 				}
 			} else {
 				// Still waiting on more fragments, so queue the head
 				dqe->second.frag0 = packet;
+				return;
 			}
 		} // else this is a duplicate head, ignore
 	} else {
@@ -694,8 +704,10 @@ void Switch::_handleRemotePacketHead(const InetAddress &fromAddr,const void *dat
 		if (!packet->tryDecode(RR)) {
 			Mutex::Lock _l(_rxQueue_m);
 			_rxQueue.push_back(packet);
+			return;
 		}
 	}
+	putFreeIncomingPacket(packet);
 }
 
 Address Switch::_sendWhoisRequest(const Address &addr,const Address *peersAlreadyConsulted,unsigned int numPeersAlreadyConsulted)

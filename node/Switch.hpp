@@ -200,7 +200,7 @@ private:
 	struct DefragQueueEntry
 	{
 		uint64_t creationTime;
-		SharedPtr<IncomingPacket> frag0;
+		IncomingPacket *frag0;
 		Packet::Fragment frags[ZT_MAX_PACKET_FRAGMENTS - 1];
 		unsigned int totalFragments; // 0 if only frag0 received, waiting for frags
 		uint32_t haveFragments; // bit mask, LSB to MSB
@@ -209,8 +209,24 @@ private:
 	Mutex _defragQueue_m;
 
 	// ZeroTier-layer RX queue of incoming packets in the process of being decoded
-	std::vector< SharedPtr<IncomingPacket> > _rxQueue;
+	std::vector< IncomingPacket* > _rxQueue;
 	Mutex _rxQueue_m;
+
+	std::vector< IncomingPacket*> free_ipackets;
+
+	void putFreeIncomingPacket(IncomingPacket *packet) {
+		packet->~IncomingPacket();
+		free_ipackets.push_back(packet);
+	}
+
+	IncomingPacket *getFreeIncomingPacket(const void *data,unsigned int len, const InetAddress &fromAddr,uint64_t now) {
+		if(free_ipackets.empty()) {
+			return new IncomingPacket(data,len,fromAddr,now);
+		}
+		IncomingPacket *tmp = free_ipackets.back();
+		free_ipackets.pop_back();
+		return new (tmp) IncomingPacket(data,len,fromAddr,now);
+	}
 
 	// ZeroTier-layer TX queue by destination ZeroTier address
 	struct TXQueueEntry
