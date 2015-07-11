@@ -270,10 +270,12 @@ private:
 	Mutex _txQueue_m;
 
 	void putFreeTXQueueEntry(TXQueueEntry *txe) {
+		std::cout << "putFreeTXQueueEntry" << std::endl;
 		free_txe.push_back(txe);
 	}
 
 	TXQueueEntry *getFreeTXQueueEntry() {
+		std::cout << "getFreeTXQueueEntry" << std::endl;
 		if(free_txe.empty()) {
 			return new TXQueueEntry();
 		}
