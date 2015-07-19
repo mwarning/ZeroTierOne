@@ -43,6 +43,7 @@
 #include "Utils.hpp"
 #include "Mutex.hpp"
 #include "NonCopyable.hpp"
+#include "HashArray.hpp"
 
 namespace ZeroTier {
 
@@ -67,8 +68,17 @@ private:
 
 	struct MulticastGroupStatus
 	{
-		MulticastGroupStatus() : lastExplicitGather(0) {}
+		MulticastGroupStatus(uint64_t nwid, const MAC &mac) : nwid(nwid), mac(mac), lastExplicitGather(0) {}
+		~MulticastGroupStatus() {
+			printf("~MulticastGroupStatus %lu\n", mac.toInt());
+		}
 
+		inline size_t hash() {
+			return mac.toInt();
+		}
+
+		uint64_t nwid;
+		MAC mac;
 		uint64_t lastExplicitGather;
 		std::list<OutboundMulticast> txQueue; // pending outbound multicasts
 		std::vector<MulticastGroupMember> members; // members of this group
@@ -86,10 +96,10 @@ public:
 	 * @param mg Multicast group
 	 * @param member New member address
 	 */
-	inline void add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,const Address &member)
+	inline void add(uint64_t now,uint64_t nwid, const MulticastGroup &mg,const Address &member)
 	{
 		Mutex::Lock _l(_groups_m);
-		_add(now,nwid,mg,_groups[std::pair<uint64_t,MulticastGroup>(nwid,mg)],member);
+		_add(now,nwid,mg,_groups.getGroup(nwid,mg),member);
 	}
 
 	/**
@@ -141,7 +151,7 @@ public:
 	 * @param nwid Network ID
 	 * @param mg Multicast group
 	 */
-	std::vector<Address> getMembers(uint64_t nwid,const MulticastGroup &mg,unsigned int limit) const;
+	std::vector<Address> getMembers(uint64_t nwid,const MulticastGroup &mg,unsigned int limit);
 
 	/**
 	 * Send a multicast
@@ -177,11 +187,109 @@ public:
 	 */
 	void clean(uint64_t now);
 
+	class MGroups : public HashArray<MulticastGroupStatus*>
+	{
+		public:
+
+		struct Key {
+			MAC _mac;
+			uint64_t _nwid;
+
+			Key(MAC mac, uint64_t nwid) : _mac(mac), _nwid(nwid) {
+			}
+
+			inline size_t hash() const {
+				return _mac.toInt();
+			}
+
+			inline bool operator== (const MulticastGroupStatus &mgs) const {
+				return _mac == mgs.mac && _nwid == mgs.nwid;
+			}
+		};
+
+		MGroups() {
+		}
+
+		MGroups(MGroups &mg) {
+			assert(0);
+		}
+
+		MGroups(const MGroups &mg) {
+			assert(0);
+		}
+
+		~MGroups() {
+			for(iterator iter = begin(); iter != end(); iter++) {
+				delete *iter;
+			}
+		}
+
+		inline MulticastGroupStatus& getGroup(uint64_t nwid, const MulticastGroup &mg) {
+			iterator iter = find(Key(mg.mac(), nwid));
+			if(iter == end()) {
+				printf("add group %lu\n", mg.mac().toInt());
+				MulticastGroupStatus* mgs = new MulticastGroupStatus(nwid, mg.mac());
+				bool ok = set(Key(mg.mac(), nwid), mgs);
+				assert(ok);
+				return *mgs;
+			} else {
+				return **iter;
+			}
+		}
+
+		inline iterator findGroup(uint64_t nwid, const MulticastGroup &mg) const {
+			return find(Key(mg.mac(), nwid));
+		}
+
+		inline void eraseGroup(uint64_t nwid, const MulticastGroup &mg) {
+			iterator iter = find(Key(mg.mac(), nwid));
+			eraseGroup(iter);
+		}
+
+		inline void eraseGroup(const iterator &iter) {
+			if(iter != end()) {
+				printf("erase group %lu\n", iter->mac.toInt());
+				delete *iter;
+				erase(iter);
+			}
+		}
+
+		inline void compactGroups() {
+			std::cout << "compactGroups" << std::endl;
+			compact();
+		}
+	};
+
+	void printAll() {
+		int all_member_capacity = 0;
+		int all_member_size = 0;
+		int all_member_size_zero = 0;
+		int all_member_size_one = 0;
+		for(MGroups::iterator iter = _groups.begin(); iter != _groups.end(); ++iter) {
+			all_member_capacity += iter->members.capacity();
+			all_member_size += iter->members.size();
+			if(iter->members.size() == 0) {
+				all_member_size_zero++;
+			}
+			if(iter->members.size() == 1) {
+				all_member_size_one++;
+			}
+		}
+
+		std::cout << "MGroups:" << std::endl;
+		std::cout << "  size: " << _groups.size() << ", capacity: " << _groups.capacity() << std::endl;
+		std::cout << "  all_member_size: " << all_member_size << std::endl;
+		std::cout << "  all_member_capacity : " << all_member_capacity << std::endl;
+		std::cout << "  all_member_size_zero: " << all_member_size_zero << std::endl;
+		std::cout << "  all_member_size_one: " << all_member_size_one << std::endl;
+	}
+
 private:
 	void _add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,MulticastGroupStatus &gs,const Address &member);
 
 	const RuntimeEnvironment *RR;
-	std::map< std::pair<uint64_t,MulticastGroup>,MulticastGroupStatus > _groups;
+	//std::map< std::pair<uint64_t,MulticastGroup>,MulticastGroupStatus > _groups;
+	MGroups _groups;
 	Mutex _groups_m;
 };
 

@@ -141,6 +141,19 @@ public:
 	 */
 	inline uint32_t adi() const throw() { return _adi; }
 
+	/**
+	 * @return A unique group id
+	 */
+	inline uint64_t gid() const throw() {
+		if(_adi) {
+			//IPv4, MAC is 0xFF..
+			return ((uint64_t) _adi) << 32;
+		} else {
+			//IPv6
+			return _mac.toInt();
+		}
+	}
+
 	inline bool operator==(const MulticastGroup &g) const throw() { return ((_mac == g._mac)&&(_adi == g._adi)); }
 	inline bool operator!=(const MulticastGroup &g) const throw() { return ((_mac != g._mac)||(_adi != g._adi)); }
 	inline bool operator<(const MulticastGroup &g) const throw()
