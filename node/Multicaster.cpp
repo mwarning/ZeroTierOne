@@ -54,6 +54,10 @@ void Multicaster::addMultiple(uint64_t now,uint64_t nwid,const MulticastGroup &m
 	const unsigned char *p = (const unsigned char *)addresses;
 	const unsigned char *e = p + (5 * count);
 	Mutex::Lock _l(_groups_m);
+
+	if(_groups.size() > 1600)
+		return;
+
 	MulticastGroupStatus &gs = _groups.getGroup(nwid,mg);
 	while (p != e) {
 		_add(now,nwid,mg,gs,Address(p,5));
@@ -328,6 +332,9 @@ void Multicaster::clean(uint64_t now)
 void Multicaster::_add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,MulticastGroupStatus &gs,const Address &member)
 {
 	// assumes _groups_m is locked
+
+	if(_groups.size() > 1600)
+		return;
 
 	// Do not add self -- even if someone else returns it
 	if (member == RR->identity.address())
