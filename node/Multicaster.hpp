@@ -176,6 +176,31 @@ public:
 	 * @param now Current time
 	 */
 	void clean(uint64_t now);
+	void printAll() {
+		int all_member_capacity = 0;
+		int all_member_size = 0;
+		int all_member_size_zero = 0;
+		int all_member_size_one = 0;
+		std::map< std::pair<uint64_t,MulticastGroup>,MulticastGroupStatus >::iterator iter;
+		for(iter = _groups.begin(); iter != _groups.end(); ++iter) {
+			MulticastGroupStatus &mgs = iter->second;
+			all_member_capacity += mgs.members.capacity();
+			all_member_size += mgs.members.size();
+			if(mgs.members.size() == 0) {
+				all_member_size_zero++;
+			}
+			if(mgs.members.size() == 1) {
+				all_member_size_one++;
+			}
+		}
+
+		std::cout << "MGroups:" << std::endl;
+		std::cout << "  size: " << _groups.size() << std::endl;
+		std::cout << "  all_member_size: " << all_member_size << std::endl;
+		std::cout << "  all_member_capacity : " << all_member_capacity << std::endl;
+		std::cout << "  all_member_size_zero: " << all_member_size_zero << std::endl;
+		std::cout << "  all_member_size_one: " << all_member_size_one << std::endl;
+	}
 
 private:
 	void _add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,MulticastGroupStatus &gs,const Address &member);
