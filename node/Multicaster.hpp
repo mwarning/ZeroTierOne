@@ -191,6 +191,7 @@ public:
 			}
 			if(mgs.members.size() == 1) {
 				all_member_size_one++;
+				std::cout << iter->first.second.mac().toString() << " " << mgs.members[0].address.toString() << std::endl;
 			}
 		}
 
