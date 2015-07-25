@@ -268,14 +268,18 @@ public:
 		int all_member_size = 0;
 		int all_member_size_zero = 0;
 		int all_member_size_one = 0;
-		for(MGroups::iterator iter = _groups.begin(); iter != _groups.end(); ++iter) {
-			all_member_capacity += iter->members.capacity();
-			all_member_size += iter->members.size();
-			if(iter->members.size() == 0) {
+
+		MGroups::iterator iter;
+		for(iter = _groups.begin(); iter != _groups.end(); ++iter) {
+			MulticastGroupStatus &mgs = *(*iter);
+			all_member_capacity += mgs.members.capacity();
+			all_member_size += mgs.members.size();
+			if(mgs.members.size() == 0) {
 				all_member_size_zero++;
 			}
-			if(iter->members.size() == 1) {
+			if(mgs.members.size() == 1) {
 				all_member_size_one++;
+				std::cout << mgs.mac.toString() << " " << mgs.members[0].address.toString() << std::endl;
 			}
 		}
 
