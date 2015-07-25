@@ -68,17 +68,17 @@ private:
 
 	struct MulticastGroupStatus
 	{
-		MulticastGroupStatus(uint64_t nwid, const MAC &mac) : nwid(nwid), mac(mac), lastExplicitGather(0) {}
+		MulticastGroupStatus(uint64_t gid, uint64_t nwid) : gid(gid), nwid(nwid), lastExplicitGather(0) {}
 		~MulticastGroupStatus() {
-			printf("~MulticastGroupStatus %lu\n", mac.toInt());
+			printf("~MulticastGroupStatus %lu\n", gid);
 		}
 
 		inline size_t hash() {
-			return mac.toInt();
+			return gid;
 		}
 
+		uint64_t gid;
 		uint64_t nwid;
-		MAC mac;
 		uint64_t lastExplicitGather;
 		std::list<OutboundMulticast> txQueue; // pending outbound multicasts
 		std::vector<MulticastGroupMember> members; // members of this group
@@ -190,21 +190,20 @@ public:
 	class MGroups : public HashArray<MulticastGroupStatus*>
 	{
 		public:
-		MAC last_mac;
 
 		struct Key {
-			MAC _mac;
+			uint64_t _gid;
 			uint64_t _nwid;
 
-			Key(MAC mac, uint64_t nwid) : _mac(mac), _nwid(nwid) {
+			Key(uint64_t gid, uint64_t nwid) : _gid(gid), _nwid(nwid) {
 			}
 
 			inline size_t hash() const {
-				return _mac.toInt();
+				return _gid;
 			}
 
 			inline bool operator== (const MulticastGroupStatus &mgs) const {
-				return _mac == mgs.mac && _nwid == mgs.nwid;
+				return _gid == mgs.gid && _nwid == mgs.nwid;
 			}
 		};
 
@@ -226,13 +225,12 @@ public:
 		}
 
 		inline MulticastGroupStatus& getGroup(uint64_t nwid, const MulticastGroup &mg) {
-			iterator iter = find(Key(mg.mac(), nwid));
+			Key key(mg.gid(), nwid);
+			iterator iter = find(key);
 			if(iter == end()) {
-				printf("add group %lu\n", mg.mac().toInt());
-				assert(last_mac != mg.mac());
-				last_mac = mg.mac();
-				MulticastGroupStatus* mgs = new MulticastGroupStatus(nwid, mg.mac());
-				bool ok = set(Key(mg.mac(), nwid), mgs);
+				printf("add group %lu\n", mg.gid());
+				MulticastGroupStatus* mgs = new MulticastGroupStatus(mg.gid(), nwid);
+				bool ok = set(key, mgs);
 				assert(ok);
 				return *mgs;
 			} else {
@@ -241,17 +239,17 @@ public:
 		}
 
 		inline iterator findGroup(uint64_t nwid, const MulticastGroup &mg) const {
-			return find(Key(mg.mac(), nwid));
+			return find(Key(mg.gid(), nwid));
 		}
 
 		inline void eraseGroup(uint64_t nwid, const MulticastGroup &mg) {
-			iterator iter = find(Key(mg.mac(), nwid));
+			iterator iter = find(Key(mg.gid(), nwid));
 			eraseGroup(iter);
 		}
 
 		inline void eraseGroup(const iterator &iter) {
 			if(iter != end()) {
-				printf("erase group %lu\n", iter->mac.toInt());
+				printf("erase group %lu\n", iter->gid);
 				delete *iter;
 				erase(iter);
 			}
@@ -279,7 +277,7 @@ public:
 			}
 			if(mgs.members.size() == 1) {
 				all_member_size_one++;
-				std::cout << mgs.mac.toString() << " " << mgs.members[0].address.toString() << std::endl;
+				std::cout << mgs.gid << " " << mgs.members[0].address.toString() << std::endl;
 			}
 		}
 
