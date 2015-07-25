@@ -190,6 +190,7 @@ public:
 	class MGroups : public HashArray<MulticastGroupStatus*>
 	{
 		public:
+		MAC last_mac;
 
 		struct Key {
 			MAC _mac;
@@ -228,6 +229,8 @@ public:
 			iterator iter = find(Key(mg.mac(), nwid));
 			if(iter == end()) {
 				printf("add group %lu\n", mg.mac().toInt());
+				assert(last_mac != mg.mac());
+				last_mac = mg.mac();
 				MulticastGroupStatus* mgs = new MulticastGroupStatus(nwid, mg.mac());
 				bool ok = set(Key(mg.mac(), nwid), mgs);
 				assert(ok);
