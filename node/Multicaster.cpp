@@ -58,9 +58,8 @@ void Multicaster::addMultiple(uint64_t now,uint64_t nwid,const MulticastGroup &m
 	if(_groups.size() > 1600)
 		return;
 
-	MulticastGroupStatus &gs = _groups.getGroup(nwid,mg);
 	while (p != e) {
-		_add(now,nwid,mg,gs,Address(p,5));
+		_add(now,nwid,mg,Address(p,5));
 		p += 5;
 	}
 }
@@ -329,12 +328,16 @@ void Multicaster::clean(uint64_t now)
 	_groups.compact();
 }
 
-void Multicaster::_add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,MulticastGroupStatus &gs,const Address &member)
+void Multicaster::_add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,const Address &member)
 {
 	// assumes _groups_m is locked
 
-	if(_groups.size() > 1600)
-		return;
+	if(_groups.findGroup(nwid, mg) == _groups.end()) {
+		if(_groups.size() > 1600)
+			return;
+	}
+
+	MulticastGroupStatus &gs = _groups.getGroup(nwid, mg);
 
 	// Do not add self -- even if someone else returns it
 	if (member == RR->identity.address())

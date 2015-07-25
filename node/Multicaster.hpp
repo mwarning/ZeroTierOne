@@ -99,7 +99,7 @@ public:
 	inline void add(uint64_t now,uint64_t nwid, const MulticastGroup &mg,const Address &member)
 	{
 		Mutex::Lock _l(_groups_m);
-		_add(now,nwid,mg,_groups.getGroup(nwid,mg),member);
+		_add(now,nwid,mg,member);
 	}
 
 	/**
@@ -292,7 +292,7 @@ public:
 	}
 
 private:
-	void _add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,MulticastGroupStatus &gs,const Address &member);
+	void _add(uint64_t now,uint64_t nwid,const MulticastGroup &mg,const Address &member);
 
 	const RuntimeEnvironment *RR;
 	//std::map< std::pair<uint64_t,MulticastGroup>,MulticastGroupStatus > _groups;
