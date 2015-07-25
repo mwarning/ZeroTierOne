@@ -199,7 +199,7 @@ public:
 			}
 
 			inline size_t hash() const {
-				return _gid;
+				return (size_t) _gid;
 			}
 
 			inline bool operator== (const MulticastGroupStatus &mgs) const {
@@ -228,7 +228,7 @@ public:
 			Key key(mg.gid(), nwid);
 			iterator iter = find(key);
 			if(iter == end()) {
-				printf("add group %lu\n", mg.gid());
+				printf("add group %llu\n", mg.gid());
 				MulticastGroupStatus* mgs = new MulticastGroupStatus(mg.gid(), nwid);
 				bool ok = set(key, mgs);
 				assert(ok);
