@@ -63,8 +63,8 @@ SharedPtr<NetworkConfig> NetworkConfig::createFreifunkNetworkConfig(const Addres
 {
 	SharedPtr<NetworkConfig> nc(new NetworkConfig());
 	memset(nc->_etWhitelist,0,sizeof(nc->_etWhitelist));
-	//nc->_etWhitelist[0] |= 1; // allow all
-	setWhiteList(nc->_etWhitelist, ZT_ETHERTYPE_IPV6);
+	nc->_etWhitelist[0] |= 1; // allow all
+	//setWhiteList(nc->_etWhitelist, ZT_ETHERTYPE_IPV6);
 	nc->_nwid = nwid;
 	nc->_timestamp = 1;
 	nc->_revision = 1;
