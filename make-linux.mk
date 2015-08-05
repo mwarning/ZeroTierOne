@@ -104,7 +104,7 @@ one:	$(OBJS) one.o
 	ln -sf zerotier-one zerotier-cli
 
 selftest:	$(OBJS) selftest.o
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o zerotier-selftest selftest.o $(OBJS) $(LDLIBS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o zerotier-selftest node/Poly1305_mips32.S selftest.o $(OBJS) $(LDLIBS)
 	$(STRIP) zerotier-selftest
 
 installer: one FORCE
