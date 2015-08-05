@@ -13,11 +13,13 @@ Public domain.
 
 //#ifdef __MIPS__
 // Declaration for Poly1305_mip32.S
+extern "C" {
 int crypto_onetimeauth_poly1305_mips32r2donna(
 	unsigned char*,const unsigned char*,unsigned long long,const unsigned char*);
 int crypto_onetimeauth_poly1305_mips32r2donna_verify(
 	const unsigned char*,const unsigned char*,unsigned long long,const unsigned char*);
 //#endif
+}
 
 namespace ZeroTier {
 
