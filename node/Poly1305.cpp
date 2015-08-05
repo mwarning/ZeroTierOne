@@ -11,13 +11,13 @@ Public domain.
 #pragma warning(disable: 4146)
 #endif
 
-#ifdef __MIPS__
+//#ifdef __MIPS__
 // Declaration for Poly1305_mip32.S
 int crypto_onetimeauth_poly1305_mips32r2donna(
 	unsigned char*,const unsigned char*,unsigned long long,const unsigned char*);
 int crypto_onetimeauth_poly1305_mips32r2donna_verify(
 	const unsigned char*,const unsigned char*,unsigned long long,const unsigned char*);
-#endif
+//#endif
 
 namespace ZeroTier {
 
@@ -127,12 +127,12 @@ static inline int crypto_onetimeauth(unsigned char *out,const unsigned char *in,
 void Poly1305::compute(void *auth,const void *data,unsigned int len,const void *key)
 	throw()
 {
-#ifdef __MIPS__
-	printf("AAAAAAAAA\n");
+//#ifdef __MIPS__
+	//printf("AAAAAAAAA\n");
 	crypto_onetimeauth_poly1305_mips32r2donna((unsigned char *)auth,(const unsigned char *)data,len,(const unsigned char *)key);
-#else
-	crypto_onetimeauth((unsigned char *)auth,(const unsigned char *)data,len,(const unsigned char *)key);
-#endif
+//#else
+//	crypto_onetimeauth((unsigned char *)auth,(const unsigned char *)data,len,(const unsigned char *)key);
+//#endif
 }
 
 } // namespace ZeroTier
