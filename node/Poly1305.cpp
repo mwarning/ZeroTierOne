@@ -6,6 +6,7 @@ Public domain.
 
 #include "Constants.hpp"
 #include "Poly1305.hpp"
+#include <stdio.h>
 
 #ifdef __WINDOWS__
 #pragma warning(disable: 4146)
@@ -130,7 +131,7 @@ void Poly1305::compute(void *auth,const void *data,unsigned int len,const void *
 	throw()
 {
 //#ifdef __MIPS__
-	//printf("AAAAAAAAA\n");
+	printf("AAAAAAAAA\n");
 	crypto_onetimeauth_poly1305_mips32r2donna((unsigned char *)auth,(const unsigned char *)data,len,(const unsigned char *)key);
 //#else
 //	crypto_onetimeauth((unsigned char *)auth,(const unsigned char *)data,len,(const unsigned char *)key);
